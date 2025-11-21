@@ -1,48 +1,47 @@
-import { createApp } from "vue"
-import { createPinia } from "pinia"
-import axios from "axios"
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import axios from "axios";
 
-import App from "./App.vue"
-import router from "./router"
-import "./style.css"
-
-// =============================
-// 🔥 IMPORT KOMPONEN KALENDER
-// =============================
-// (Tidak perlu app.use, karena dia BUKAN plugin, tapi komponen)
-import VueCalendar from "@kodeglot/vue-calendar"
-import "@kodeglot/vue-calendar/style.css"
+import App from "./App.vue";
+import router from "./router";
+import "./style.css"; // tailwind + custom style
 
 // =============================
-// 🔧 CONFIG AXIOS
+// FULLCALENDAR (versi aman untuk Vue 3)
 // =============================
-axios.defaults.baseURL = import.meta.env.VITE_API_URL
-axios.defaults.headers.common["Accept"] = "application/json"
+import FullCalendar from "@fullcalendar/vue3";
+
+// CSS FULLCALENDAR
+import "@fullcalendar/core/main.css";
+import "@fullcalendar/daygrid/main.css";
+import "@fullcalendar/timegrid/main.css";
 
 // =============================
-// 🚀 CREATE APP
+// KALENDER KODEGLOT (opsional)
 // =============================
-const app = createApp(App)
+import VueCalendar from "@kodeglot/vue-calendar";
+import "@kodeglot/vue-calendar/style.css";
 
 // =============================
-// 🔧 REGISTER PINIA & ROUTER
+// CONFIG AXIOS
 // =============================
-app.use(createPinia())
-app.use(router)
+axios.defaults.baseURL = import.meta.env.VITE_API_URL;
+axios.defaults.headers.common["Accept"] = "application/json";
 
 // =============================
-// 🔧 REGISTER KOMPONEN GLOBAL
+// CREATE APP
 // =============================
-// wajib! karena VueCalendar bukan plugin
-app.component("VueCalendar", VueCalendar)
+const app = createApp(App);
 
-// =============================
-// 🔧 GLOBAL AXIOS
-// =============================
-app.provide("axios", axios)
-app.config.globalProperties.$axios = axios
+app.use(createPinia());
+app.use(router);
 
-// =============================
-// 🚀 MOUNT APLIKASI
-// =============================
-app.mount("#app")
+// REGISTER GLOBAL COMPONENT
+app.component("FullCalendar", FullCalendar);
+app.component("VueCalendar", VueCalendar);
+
+// GLOBAL AXIOS
+app.provide("axios", axios);
+app.config.globalProperties.$axios = axios;
+
+app.mount("#app");

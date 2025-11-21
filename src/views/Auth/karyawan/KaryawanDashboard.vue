@@ -1,14 +1,4 @@
 <template>
-  <!-- CSS FullCalendar (CDN) -->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@5.11.5/main.min.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@5.11.5/main.min.css"
-  />
-
   <div class="p-6 bg-[#e8eef1] min-h-screen relative">
     <!-- HEADER -->
     <div class="flex items-center justify-between mb-6">
@@ -119,6 +109,37 @@
       </div>
     </div>
 
+    <!-- MODAL: TAMBAH RESERVASI -->
+    <div v-if="addReservationModal.open" class="fixed inset-0 z-60 flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/40" @click="closeAddReservationModal"></div>
+      <div class="bg-white rounded-xl shadow-lg z-70 w-96 p-4">
+        <h3 class="font-semibold mb-3">Tambah Reservasi</h3>
+        <form @submit.prevent="submitReservation">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700">Nama Ruangan</label>
+            <select v-model="newReservation.roomId" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+              <option v-for="room in rooms" :key="room.id" :value="room.id">{{ room.name }}</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700">Tanggal</label>
+            <input type="date" v-model="newReservation.date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required />
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700">Waktu Mulai</label>
+            <input type="time" v-model="newReservation.startTime" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required />
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700">Waktu Selesai</label>
+            <input type="time" v-model="newReservation.endTime" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required />
+          </div>
+          <div class="mt-4 flex justify-end">
+            <button type="button" @click="closeAddReservationModal" class="px-3 py-1 rounded bg-gray-100">Batal</button>
+            <button type="submit" class="ml-2 px-3 py-1 rounded bg-blue-600 text-white">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -139,6 +160,8 @@ const dropdown = ref(false);
 const mode = ref("dayGridMonth");
 const events = ref([]);
 const rooms = ref([]);
+const addReservationModal = ref({ open: false });
+const newReservation = ref({ roomId: null, date: '', startTime: '', endTime: '' });
 
 const calendarRef = ref(null);
 const miniRef = ref(null);
@@ -192,32 +215,15 @@ const calendarOptions = ref({
     currentDate.value = info.view.currentStart;
   },
 
-  // ⭐ EVENT CUSTOM (SEPERTI FOTO)
   eventContent(arg) {
     const props = arg.event.extendedProps;
-
     const color = arg.event.backgroundColor || "#6366F1";
     const status = props.status || props.status_reservation || "approved";
 
     const statusDot =
       status === "pending" || status === "menunggu"
-        ? `<span style="
-            width:10px;
-            height:10px;
-            border-radius:50%;
-            border:2px solid black;
-            background:white;
-            display:inline-block;
-            margin-right:4px;
-        "></span>`
-        : `<span style="
-            width:10px;
-            height:10px;
-            border-radius:50%;
-            background:black;
-            display:inline-block;
-            margin-right:4px;
-        "></span>`;
+        ? `<span style="width:10px;height:10px;border-radius:50%;border:2px solid black;background:white;display:inline-block;margin-right:4px;"></span>`
+        : `<span style="width:10px;height:10px;border-radius:50%;background:black;display:inline-block;margin-right:4px;"></span>`;
 
     return {
       html: `
@@ -233,16 +239,8 @@ const calendarOptions = ref({
           overflow:hidden;
           white-space:nowrap;
         ">
-          <span style="
-            width:10px;
-            height:10px;
-            background:${color};
-            border-radius:50%;
-            flex-shrink:0;
-          "></span>
-
+          <span style="width:10px;height:10px;background:${color};border-radius:50%;flex-shrink:0;"></span>
           ${statusDot}
-
           <span>${arg.event.title}</span>
         </div>
       `,
@@ -334,10 +332,27 @@ function closeDateMenu() {
 
 function openAddFromMenu() {
   closeDateMenu();
-  router.push({
-    path: "/reservasi/create",
-    query: { date: dateMenu.value.date },
-  });
+  addReservationModal.value.open = true;
+}
+
+function closeAddReservationModal() {
+  addReservationModal.value.open = false;
+  newReservation.value = { roomId: null, date: "", startTime: "", endTime: "" };
+}
+
+async function submitReservation() {
+  try {
+    await axios.post("/reservations", {
+      roomId: newReservation.value.roomId,
+      date: newReservation.value.date,
+      startTime: newReservation.value.startTime,
+      endTime: newReservation.value.endTime,
+    });
+    closeAddReservationModal();
+    await loadEvents();
+  } catch (error) {
+    console.error("Error adding reservation:", error);
+  }
 }
 
 function openViewFromMenu() {
@@ -353,7 +368,7 @@ function closeViewModal() {
 const eventsForDate = computed(() => {
   const d = viewModal.value.date;
   if (!d) return [];
-  return events.value.filter((ev) => ev.start.split("T")[0] === d);
+  return events.value.filter((ev) => (ev.start || "").split("T")[0] === d);
 });
 
 onMounted(async () => {
@@ -362,20 +377,6 @@ onMounted(async () => {
 });
 </script>
 
-<style>
-.mini-calendar .fc {
-  font-size: 12px !important;
-}
-.mini-calendar .fc-daygrid-day-frame {
-  padding: 2px !important;
-}
-.mini-calendar .fc-daygrid-day {
-  height: 24px !important;
-}
-.mini-calendar .fc-daygrid-day-number {
-  font-size: 11px !important;
-}
-.mini-calendar .fc-daygrid-day-events {
-  display: none !important;
-}
+<style scoped>
+/* small local styles */
 </style>

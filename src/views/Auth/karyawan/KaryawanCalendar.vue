@@ -1,3 +1,83 @@
+<template>
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+    <!-- ================= MINI CALENDAR ================ -->
+    <div class="bg-white shadow rounded p-4">
+      <div class="flex justify-between items-center mb-2">
+        <button @click="miniPrev" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm">
+          Prev
+        </button>
+
+        <h2 class="font-semibold text-sm">{{ miniMonth }}</h2>
+
+        <button @click="miniNext" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm">
+          Next
+        </button>
+      </div>
+
+      <FullCalendar ref="miniRef" :options="miniCalendarOptions" />
+    </div>
+
+    <!-- ================= MAIN CALENDAR ================ -->
+    <div class="md:col-span-3 bg-white shadow rounded p-4">
+      <!-- NAVIGATION -->
+      <div class="flex justify-between items-center mb-4">
+
+        <h2 class="font-semibold text-lg">{{ formattedMonth }}</h2>
+
+        <div class="flex items-center gap-2">
+          <button @click="prev" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm">
+            Prev
+          </button>
+          <button @click="goToday" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm">
+            Today
+          </button>
+          <button @click="next" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm">
+            Next
+          </button>
+
+          <!-- DROPDOWN -->
+          <div class="relative">
+            <button
+              @click="toggleDropdown"
+              class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+            >
+              {{ modeLabel }}
+            </button>
+
+            <div
+              v-if="dropdown"
+              class="absolute right-0 mt-2 w-32 bg-white shadow rounded border z-50"
+            >
+              <button
+                @click="setView('dayGridMonth')"
+                class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+              >
+                Bulan
+              </button>
+              <button
+                @click="setView('timeGridWeek')"
+                class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+              >
+                Minggu
+              </button>
+              <button
+                @click="setView('timeGridDay')"
+                class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+              >
+                Hari
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FULLCALENDAR -->
+      <FullCalendar ref="calendarRef" :options="calendarOptions" />
+    </div>
+  </div>
+</template>
+
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import FullCalendar from "@fullcalendar/vue3";
@@ -85,11 +165,9 @@ const loadRooms = async () => {
 
     rooms.value = res.data.data.map((r, index) => ({
       id: r.id,
-      name: r.nama_ruangan, // sesuai database
+      name: r.nama_ruangan,
       color: ["#d946ef", "#f59e0b", "#22c55e", "#2563eb"][index % 4],
     }));
-
-    console.log("ROOMS:", rooms.value);
   } catch (error) {
     console.error("Error load rooms:", error);
   }
@@ -100,12 +178,10 @@ const loadEvents = async () => {
   try {
     const res = await axios.get("/reservations");
 
-    console.log("🔥 RAW API RESERVATIONS:", res.data);
-
     events.value = res.data.data.map((item) => {
-      const tanggal = item.tanggal?.split("T")[0]; // fix tanggal biar aman
+      const tanggal = item.tanggal?.split("T")[0];
 
-      const eventData = {
+      return {
         id: item.id,
         title: `${item.room.nama_ruangan} | ${item.start_time} - ${item.end_time}`,
         start: `${tanggal}T${item.start_time}`,
@@ -115,13 +191,7 @@ const loadEvents = async () => {
         textColor: "white",
         borderColor: "transparent",
       };
-
-      console.log("🟦 EVENT GENERATED:", eventData);
-
-      return eventData;
     });
-
-    console.log("🟩 FINAL EVENTS:", events.value);
   } catch (error) {
     console.error("Error load events:", error);
   }
